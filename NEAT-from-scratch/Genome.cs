@@ -17,10 +17,10 @@ namespace NEAT
 
 		//============CONSTRUCTOR=============
 		/// <summary>
-		/// Initializes a new instance of the <see cref="NEAT.Genome"/> class.
+		/// Initializes a new instance of the <see cref="NEAT.Genome"/> class. A genome countains a neural network topology.
 		/// </summary>
-		/// <param name="inputs">Inputs.</param>
-		/// <param name="outputs">Outputs.</param>
+		/// <param name="inputs">The number of inputs in the NN.</param>
+		/// <param name="outputs">The number of outputs in the NN.</param>
 		public Genome(int inputs, int outputs)
 		{
 			Layers = 2;
@@ -47,33 +47,41 @@ namespace NEAT
 		}
 
 
-		//==============MAIN METHODS==============
-		/// <summary>
-		/// Generate the output values of the NN.
-		/// </summary>
-		/// <returns>Output values of the NN</returns>
-		/// <param name="inputValues">Input values.</param>
-		public float[] FeedForward(float[] inputValues)
+        //==============MAIN METHODS==============
+        /// <summary>
+        /// Generate the output values of the NN.
+        /// </summary>
+        /// <returns>Output values of the NN</returns>
+        /// <param name="inputValues">Input values. Must be as long as the number of input nodes.</param>
+        /// <exception cref="Exception">Throw when the input array isn't as long as the number of input nodes in the genome.</exception>
+        public float[] FeedForward(float[] inputValues)
 		{
-            GenerateNetwork();
-			// set the inputs
-			for (int i = 0; i< Inputs; i++)
-				Nodes[i].OutputValue = inputValues[i];
-			Nodes [BiasNode].OutputValue = 1;
+            if (inputValues.Length == Inputs)
+            {
+                GenerateNetwork();
+                // set the inputs
+                for (int i = 0; i < Inputs; i++)
+                    Nodes[i].OutputValue = inputValues[i];
+                Nodes[BiasNode].OutputValue = 1;
 
-			foreach (Node node in network)
-				node.engage (); //engage every node (engage = send its output to the inputs of the nodes it's connected to)
+                foreach (Node node in network)
+                    node.engage(); //engage every node (engage = send its output to the inputs of the nodes it's connected to)
 
-			//the outputs are nodes[inputs] to nodes [inputs+outputs-1]
-			float[] outputs = new float[Outputs];
-			for (int i = 0; i < Outputs; i++)
-				outputs [i] = Nodes [Inputs + i].OutputValue;
+                //the outputs are nodes[inputs] to nodes [inputs+outputs-1]
+                float[] outputs = new float[Outputs];
+                for (int i = 0; i < Outputs; i++)
+                    outputs[i] = Nodes[Inputs + i].OutputValue;
 
-			//reset all the nodes for the next feed forward
-			foreach (Node node in Nodes)
-				node.InputSum = 0;
+                //reset all the nodes for the next feed forward
+                foreach (Node node in Nodes)
+                    node.InputSum = 0;
 
-			return outputs;
+                return outputs;
+            }
+            else
+            {
+                throw new Exception("The input array must be the same size than the number of input nodes.");
+            }
 
 		}
 
@@ -116,7 +124,20 @@ namespace NEAT
 					return n;
 			return null; //if there isn't any node with that number
 		}
-	}
+        public override string ToString()
+        {
+            string str = "NODES:\n";
+            foreach (Node node in Nodes)
+                str += " - " + node + "\n";
+            
+            str += "CONNECTIONS:\n";
+            foreach (ConnectionGene connection in Connections)
+                str += " - " + connection + "\n";
+            
+            return str;
+
+        }
+    }
 
 
 }

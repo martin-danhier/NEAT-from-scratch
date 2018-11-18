@@ -45,6 +45,12 @@ namespace NEAT
 		{
 			return 1 / (1 + (float) Math.Pow (Math.E, -4.9f * x));
 		}
-	}
+
+        public override string ToString()
+        {
+            return String.Format("Node #{0}, Layer: {1}, {2} output connection(s), Output value: {3} ", Number, Layer, OutputConnections.Count, OutputValue);
+
+        }
+    }
 }
 

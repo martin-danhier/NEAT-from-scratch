@@ -42,6 +42,12 @@ namespace NEAT
 			return clone;
 		}
 
-	}
+        public override string ToString()
+        {
+            return String.Format("Connection from Node #{0} to Node #{1}, Enabled: {2}, Innovation: {3}, Weight: {4}", FromNode.Number, ToNode.Number, IsEnabled, InnovationNumber, Weight);
+
+        }
+
+    }
 }
 
