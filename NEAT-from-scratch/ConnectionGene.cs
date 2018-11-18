@@ -7,7 +7,7 @@ namespace NEAT
 		public Node FromNode { get; private set; }
 		public Node ToNode { get; private set; }
 		public float Weight { get; private set; }
-		public bool IsEnabled { get; private set; }
+		public bool IsEnabled { get; set; }
 		public int InnovationNumber { get; private set; }
 
 		//========= CONSTRUCTOR ==========
@@ -31,6 +31,30 @@ namespace NEAT
 		{
 			
 		}
+        /// <summary>
+        /// Enable this connection.
+        /// </summary>
+        public void Enable()
+        {
+            IsEnabled = true;
+        }
+        /// <summary>
+        /// Disable this connection.
+        /// </summary>
+        public void Disable()
+        {
+            IsEnabled = false;
+        }
+        /// <summary>
+        /// Toggle this connection.
+        /// </summary>
+        public void Toggle()
+        {
+            if (IsEnabled)
+                IsEnabled = false;
+            else
+                IsEnabled = true;
+        }
 
 		/// <summary>
 		/// Returns a copy of this connectionGene.

@@ -121,33 +121,97 @@ namespace NEAT
         /// <summary>
         /// Randomly add a new connection between two nodes.
         /// </summary>
-        public void LinkMutate()
+        private void LinkMutate(List<ConnectionHistory> history)
         {
             
         }
         /// <summary>
         /// Add a new node by splitting an existing connection into two connections and a new node
         /// </summary>
-        public void NodeMutate()
+        private void NodeMutate(List<ConnectionHistory> history)
         {
             
         }
         /// <summary>
         /// Randomly enable/disable an existing connection.
         /// </summary>
-        public void EnableDisableMutate()
-        {
-            
-        }
-        /// <summary>
-        /// Randomly change the weight of an existing connection.
-        /// </summary>
-        public void PointMutate()
+        private void EnableDisableMutate()
         {
             if (Connections.Count > 0)
-                Connections[new Random().Next(Connections.Count)].MutateWeight();   
+            {
+                Connections[new Random().Next(Connections.Count)].Toggle();
+            }
         }
 
+        public void Mutate(List<ConnectionHistory> history)
+        {
+            if (Connections.Count == 0)
+                LinkMutate(history);
+            Random random = new Random();
+            //Mutates weights
+            if (random.NextDouble() < 0.08)
+                foreach (ConnectionGene connection in Connections)
+                    connection.MutateWeight();
+            //Add a new connection
+            if (random.NextDouble() < 0.08)
+                LinkMutate(history);
+            //Add a new node
+            if (random.NextDouble() < 0.02)
+                NodeMutate(history);
+            //Toggle a connection
+            if (random.NextDouble() < 0.01)
+                EnableDisableMutate();
+        }
+
+
+        // =============== CROSSOVER ================
+        public Genome Crossover (Genome partner)
+        {
+            Genome child = new Genome(Inputs, Outputs);
+            child.Connections.Clear();
+            child.Nodes.Clear();
+            child.Layers = Layers;
+            child.NextNode = NextNode;
+            child.BiasNode = BiasNode;
+            List<ConnectionGene> childConnections = new List<ConnectionGene>();
+            List<bool> isEnabled = new List<bool>();
+            //CONNECTIONS
+            foreach (ConnectionGene connection in Connections)
+            {
+                Random random = new Random();
+                bool setEnabled = true;
+                int partnerConnection = GetMatchingGene(partner, connection.InnovationNumber);
+                if (partnerConnection != -1) //if the other parent has the same gene
+                {
+                    //If one of the connections is disabled, there is 75% chance that the gene will be disabled
+                    if ((!connection.IsEnabled || !partner.Connections[partnerConnection].IsEnabled) && random.NextDouble() < 0.75)
+                        setEnabled = false;
+                    //The gene is transmitted by one of the parents
+                    if (random.NextDouble() < 0.5)
+                        childConnections.Add(connection);
+                    else
+                        childConnections.Add(partner.Connections[partnerConnection]);
+                }
+                else //disjoint or excess gene -> add it
+                {
+                    childConnections.Add(connection);
+                    setEnabled = connection.IsEnabled;
+                }
+                isEnabled.Add(setEnabled);
+            }
+            //the child has as many nodes as the fittest parent (this one)
+            foreach (Node node in Nodes)
+                child.Nodes.Add(node.Clone());
+            //clone all connections
+            for (int i = 0; i < childConnections.Count; i++)
+            {
+                child.Connections.Add(childConnections[i].Clone(child.GetNode(childConnections[i].FromNode.Number), child.GetNode(childConnections[i].ToNode.Number)));
+                child.Connections[i].IsEnabled = isEnabled[i];
+            }
+            child.ConnectNodes();
+            return child;
+
+        }
         //===============USEFUL METHODS==============
 
         //TO FACTORIZE (usage of ref)
@@ -176,6 +240,21 @@ namespace NEAT
             }
             return innovation;
         }
+
+        /// <summary>
+        /// Check if there is a connection matching the input innovation number.
+        /// </summary>
+        /// <returns>The matching gene index or -1 if there aren't any.</returns>
+        int GetMatchingGene(Genome partner, int innovationNumber)
+        {
+            for (int i = 0; i < partner.Connections.Count; i++)
+                if (partner.Connections[i].InnovationNumber == innovationNumber)
+                    return i;
+            return -1; //no matching gene found
+        }
+
+
+
 
 		Node GetNode(int nodeNumber)
 		{

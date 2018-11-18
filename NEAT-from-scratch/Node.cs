@@ -51,6 +51,16 @@ namespace NEAT
             return String.Format("Node #{0}, Layer: {1}, {2} output connection(s), Output value: {3} ", Number, Layer, OutputConnections.Count, OutputValue);
 
         }
+
+        /// <summary>
+        /// Clone this node.
+        /// </summary>
+        public Node Clone()
+        {
+            Node clone = new Node(Number);
+            clone.Layer = Layer;
+            return clone;
+        }
     }
 }
 
