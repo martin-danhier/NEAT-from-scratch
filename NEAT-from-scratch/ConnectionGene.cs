@@ -35,7 +35,7 @@ namespace NEAT
 		/// <summary>
 		/// Returns a copy of this connectionGene.
 		/// </summary>
-		public ConnectionGene clone(Node fromNode, Node toNode)
+		public ConnectionGene Clone(Node fromNode, Node toNode)
 		{
 			ConnectionGene clone = new ConnectionGene (fromNode, toNode, Weight, InnovationNumber);
 			clone.IsEnabled = true;

@@ -114,8 +114,68 @@ namespace NEAT
 							network.Add (node); // add it
 
 		}
-		//===============USEFUL METHODS==============
 
+        // ================ MUTATIONS ==================
+        //already done, cf other repo
+
+        /// <summary>
+        /// Randomly add a new connection between two nodes.
+        /// </summary>
+        public void LinkMutate()
+        {
+            
+        }
+        /// <summary>
+        /// Add a new node by splitting an existing connection into two connections and a new node
+        /// </summary>
+        public void NodeMutate()
+        {
+            
+        }
+        /// <summary>
+        /// Randomly enable/disable an existing connection.
+        /// </summary>
+        public void EnableDisableMutate()
+        {
+            
+        }
+        /// <summary>
+        /// Randomly change the weight of an existing connection.
+        /// </summary>
+        public void PointMutate()
+        {
+            if (Connections.Count > 0)
+                Connections[new Random().Next(Connections.Count)].MutateWeight();   
+        }
+
+        //===============USEFUL METHODS==============
+
+        //TO FACTORIZE (usage of ref)
+        /// <summary>
+        /// Gets the innovation number.
+        /// </summary>
+        /// <returns>The innovation number.</returns>
+        private int GetInnovationNumber(List<ConnectionHistory> history, ref int nextInnovationNumber, Node fromNode, Node toNode)
+        {
+            int innovation = nextInnovationNumber;
+            bool isNew = true;
+            foreach (ConnectionHistory element in history)
+                if (element.Matches(this, fromNode, toNode))
+                {
+                    isNew = false; //mutation already exists
+                    innovation = element.InnovationNumber; 
+                }
+            if (isNew)
+            {
+                List<int> innovationNumbers = new List<int>();
+                foreach (ConnectionGene connection in Connections){
+                    innovationNumbers.Add(connection.InnovationNumber);
+                }
+                history.Add(new ConnectionHistory(fromNode.Number,toNode.Number,innovation, innovationNumbers));
+                nextInnovationNumber++;
+            }
+            return innovation;
+        }
 
 		Node GetNode(int nodeNumber)
 		{

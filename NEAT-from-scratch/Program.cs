@@ -22,8 +22,10 @@ namespace Program
 			foreach (float f in outputs)
 				Console.WriteLine (f);
 
-            Console.WriteLine("\nPress any key to close the program.");
-            Console.ReadKey();
+
+            //Uncomment this if you are using Visual Studio Community instead of MonoDevelop
+            //Console.WriteLine("\nPress any key to close the program.");
+            //Console.ReadKey();
 		}
 	}
 }
