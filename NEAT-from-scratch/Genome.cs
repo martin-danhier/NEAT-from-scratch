@@ -123,7 +123,52 @@ namespace NEAT
         /// </summary>
         private void LinkMutate(List<ConnectionHistory> history)
         {
-            
+            if (Nodes.Count >= 2 && Connections.Count < GetMaxConnections())
+            {
+                bool ConnectionAlreadyExists = false;
+                int innovation = 1;
+                int inNode = 0;
+                int outNode = 0;
+                Random random = new Random(); //random number generator
+                do
+                {
+                    ConnectionAlreadyExists = false;
+                    //Get two values for inNode and outNode that are different and valid
+                    bool loop = true;
+                    do
+                    {
+                        int randomIndex = random.Next(0, Nodes.Count);
+                        if (Nodes[randomIndex].Layer != 1) //if the chosen node is not an output node
+                        {
+                            loop = false;
+                            inNode = Nodes[randomIndex].Number;
+                        }
+                    } while (loop);
+                    loop = true;
+                    do
+                    {
+                        int randomIndex = random.Next(0, Nodes.Count);
+                        if (Nodes[randomIndex].Layer != 0 && Nodes[randomIndex].Number != inNode) //if the chosen node is not an output node
+                        {
+                            loop = false;
+                            outNode = Nodes[randomIndex].Number;
+                        }
+                    } while (loop);
+                    //Check if the connection already exists
+                    foreach (ConnectionGene connection in Connections)
+                        if (connection.FromNode.Number == inNode && connection.ToNode.Number == outNode) //the node already exists
+                            ConnectionAlreadyExists = true;
+
+                } while (ConnectionAlreadyExists);
+                //A random new valid generation has been generated.
+                //Add it
+                Connections.Add(new ConnectionGene(GetNode(inNode), GetNode(outNode), (float)random.NextDouble() * 4 - 2, innovation));
+            }
+            else
+            {
+                //can't add a new connection
+                Console.WriteLine("The genome has reached its max connection number. Cannot add a new one.")
+            }
         }
         /// <summary>
         /// Add a new node by splitting an existing connection into two connections and a new node
@@ -143,6 +188,10 @@ namespace NEAT
             }
         }
 
+        /// <summary>
+        /// Randomly mutate this genome.
+        /// </summary>
+        /// <param name="history">The history of past connections</param>
         public void Mutate(List<ConnectionHistory> history)
         {
             if (Connections.Count == 0)
@@ -263,6 +312,7 @@ namespace NEAT
 					return n;
 			return null; //if there isn't any node with that number
 		}
+
         public override string ToString()
         {
             string str = "NODES:\n";
@@ -274,6 +324,19 @@ namespace NEAT
                 str += " - " + connection + "\n";
             
             return str;
+
+        }
+
+        /// <summary>
+        /// Computes the max number of connection that this genome may have with the current nodes.
+        /// </summary>
+        public int GetMaxConnections()
+        {
+            //the number of hidden nodes
+            int hiddens = Nodes.Count - Outputs - Inputs;
+
+            //     /- connections from inputs -\    /-connections from hiddens nodes-\
+            return (Inputs * (hiddens + Outputs)) + (hiddens * (hiddens + Outputs - 1));
 
         }
     }
