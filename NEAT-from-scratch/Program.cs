@@ -25,8 +25,8 @@ namespace Program
             Genome genome3 = genome2.Crossover(genome);
             Console.WriteLine("GENOME 3:\n{0}\n", genome3);
             //Uncomment this if you are using Visual Studio Community instead of MonoDevelop
-            //Console.WriteLine("\nPress any key to close the program.");
-            //Console.ReadKey();
+            Console.WriteLine("\nPress any key to close the program.");
+            Console.ReadKey();
 		}
 	}
 }
