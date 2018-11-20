@@ -10,6 +10,8 @@ namespace NEAT
 		public bool IsEnabled { get; set; }
 		public int InnovationNumber { get; private set; }
 
+        private static Random randomGenerator = new Random();
+
 		//========= CONSTRUCTOR ==========
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NEAT.ConnectionGene"/> class.
@@ -29,8 +31,18 @@ namespace NEAT
 		/// </summary>
 		public void MutateWeight()
 		{
-			
-		}
+            if (randomGenerator.NextDouble() < 0.1)
+                Weight = Convert.ToSingle((randomGenerator.NextDouble() * 2) - 1);
+            else
+            {
+                Weight += Convert.ToSingle(randomGenerator.NextDouble() / 50);
+                if (Weight > 1)
+                    Weight = 1;
+                if (Weight < -1)
+                    Weight = -1;
+            }
+            
+        }
         /// <summary>
         /// Enable this connection.
         /// </summary>

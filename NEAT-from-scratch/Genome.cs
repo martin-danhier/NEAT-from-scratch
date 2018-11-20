@@ -137,7 +137,7 @@ namespace NEAT
                     do
                     {
                         int randomIndex = randomGenerator.Next(0, Nodes.Count);
-                        if (Nodes[randomIndex].Layer != 1) //if the chosen node is not an output node
+                        if (Nodes[randomIndex].Layer != Layers-1) //if the chosen node is not an output node
                         {
                             loop = false;
                             inNode = Nodes[randomIndex].Number;
@@ -147,7 +147,7 @@ namespace NEAT
                     do
                     {
                         int randomIndex = randomGenerator.Next(0, Nodes.Count);
-                        if (Nodes[randomIndex].Layer != 0 && Nodes[randomIndex].Number != inNode) //if the chosen node is not an output node
+                        if (Nodes[randomIndex].Layer != 0 && Nodes[randomIndex].Number != inNode) //if the chosen node is not an input node
                         {
                             loop = false;
                             outNode = Nodes[randomIndex].Number;
@@ -184,9 +184,42 @@ namespace NEAT
         /// <summary>
         /// Add a new node by splitting an existing connection into two connections and a new node
         /// </summary>
-        private void NodeMutate(List<ConnectionHistory> history)
+        private void NodeMutate(List<ConnectionHistory> history, ref int nextInnovationNumber)
         {
-            
+            if (IsThereAnyEnabledConnection())
+            {
+                //chose a connection
+                int randomIndex = 0;
+                do
+                {
+                    randomIndex = randomGenerator.Next(Connections.Count);
+                } while (!Connections[randomIndex].IsEnabled && Connections[randomIndex].FromNode.Number == BiasNode);
+                // disable it
+                Connections[randomIndex].Disable();
+                // create a new node
+                Nodes.Add(new Node(NextNode, Connections[randomIndex].FromNode.Layer + 1));
+                //create connections that have the exact same effect than the first one
+                Connections.Add(new ConnectionGene(Connections[randomIndex].FromNode, GetNode(NextNode), 1, GetInnovationNumber(history, ref nextInnovationNumber, Connections[randomIndex].FromNode, GetNode(NextNode))));
+                Connections.Add(new ConnectionGene(GetNode(NextNode), Connections[randomIndex].ToNode, Connections[randomIndex].Weight, GetInnovationNumber(history, ref nextInnovationNumber, GetNode(NextNode), Connections[randomIndex].ToNode)));
+                //Connect the bias node to the new node
+                Connections.Add(new ConnectionGene(GetNode(BiasNode), GetNode(NextNode), 0, GetInnovationNumber(history, ref nextInnovationNumber, GetNode(BiasNode), GetNode(NextNode))));
+
+                //if the layer of the new node doesn't exist, create it (shift every layer positioned after this one)
+                if (GetNode(NextNode).Layer == Connections[randomIndex].ToNode.Layer)
+                {
+                    foreach (Node n in Nodes)
+                        if (n.Layer >= GetNode(NextNode).Layer && n.Number != NextNode)
+                            n.Layer++;
+                    Layers++;
+                }
+                ConnectNodes();
+
+                NextNode++;
+            }
+            else
+            {
+                Console.WriteLine("There are no enabled connection to split.");
+            }
         }
         /// <summary>
         /// Randomly enable/disable an existing connection.
@@ -208,7 +241,7 @@ namespace NEAT
             if (Connections.Count == 0)
                 LinkMutate(history, ref nextInnovationNumber);
             //Mutates weights
-            if (randomGenerator.NextDouble() < 0.08)
+            if (randomGenerator.NextDouble() < 0.8)
                 foreach (ConnectionGene connection in Connections)
                     connection.MutateWeight();
             //Add a new connection
@@ -217,9 +250,9 @@ namespace NEAT
                 LinkMutate(history, ref nextInnovationNumber);
             //Add a new node
             if (randomGenerator.NextDouble() < 0.02)
-                NodeMutate(history);
+                NodeMutate(history, ref nextInnovationNumber);
             //Toggle a connection
-            if (randomGenerator.NextDouble() < 0.01)
+            if (randomGenerator.NextDouble() < 0.02)
                 EnableDisableMutate();
         }
 
@@ -304,7 +337,7 @@ namespace NEAT
         /// Check if there is a connection matching the input innovation number.
         /// </summary>
         /// <returns>The matching gene index or -1 if there aren't any.</returns>
-        int GetMatchingGene(Genome partner, int innovationNumber)
+        private int GetMatchingGene(Genome partner, int innovationNumber)
         {
             for (int i = 0; i < partner.Connections.Count; i++)
                 if (partner.Connections[i].InnovationNumber == innovationNumber)
@@ -315,7 +348,7 @@ namespace NEAT
 
 
 
-		Node GetNode(int nodeNumber)
+		private Node GetNode(int nodeNumber)
 		{
 			foreach (Node n in Nodes)
 				if (n.Number == nodeNumber)
@@ -340,7 +373,7 @@ namespace NEAT
         /// <summary>
         /// Computes the max number of connection that this genome may have with the current nodes.
         /// </summary>
-        public int GetMaxConnections()
+        private int GetMaxConnections()
         {
             //the number of hidden nodes
             int hiddens = Nodes.Count - Outputs - (Inputs + 1);
@@ -369,6 +402,16 @@ namespace NEAT
             clone.ConnectNodes();
             return clone;
 
+        }
+
+        private bool IsThereAnyEnabledConnection()
+        {
+            //Check if there are enabled connections
+            foreach (ConnectionGene connection in Connections)
+                if (connection.IsEnabled && connection.FromNode.Number != BiasNode)
+                    return true;
+            //Can't find any enabled connection
+            return false;
         }
     }
 

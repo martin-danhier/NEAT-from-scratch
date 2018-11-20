@@ -8,7 +8,7 @@ namespace NEAT
 
 		public float InputSum { get; set; }
 		public float OutputValue { get; set; }
-		public int Layer { get; private set; }
+		public int Layer { get;  set; }
 		public int Number { get; private set; }
 		public List<ConnectionGene> OutputConnections { get; private set; }
 
