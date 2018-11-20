@@ -19,18 +19,18 @@ namespace Program
             genome.Connections.Add(new ConnectionGene(genome.Nodes[0], genome.Nodes[4], 0.5f, 3));
             //Process the neural network and compute the outputs
             Genome genome2 = genome.Clone();
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
-            genome2.Mutate(history, ref nextInnovationNumber);
+            int iterations = 0;
+            do
+            {
+                genome2.Mutate(history, ref nextInnovationNumber);
+                iterations++;
+            } while (genome2.Connections.Count == 3);
 
-            Console.WriteLine("GENOME 1:\n{0}\nGENOME 2:\n{1}\n\n\n\nmutation ........\n\n\n", genome, genome2);
+            Console.WriteLine("GENOME 1:\n{0}\nGENOME 2: (after {2} iterations)\n{1}\n\n\n\n", genome, genome2, iterations);
+
+            
+
+
             //Genome genome3 = genome2.Crossover(genome);
             //Console.WriteLine("GENOME 3:\n{0}\n", genome3);
             //Uncomment this if you are using Visual Studio Community instead of MonoDevelop

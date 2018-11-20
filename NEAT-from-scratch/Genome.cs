@@ -14,7 +14,7 @@ namespace NEAT
 		public int BiasNode { get; private set; }
 
 		private List<Node> network; //a list of the nodes in the order that they need to be considered by the neural network
-
+        private static Random randomGenerator = new Random();
 		//============CONSTRUCTOR=============
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NEAT.Genome"/> class. A genome countains a neural network topology.
@@ -128,8 +128,7 @@ namespace NEAT
                 bool ConnectionAlreadyExists = false;
 
                 int inNode = 0;
-                int outNode = 0;
-                Random random = new Random(); //random number generator
+                int outNode = 0; //random number generator
                 do
                 {
                     ConnectionAlreadyExists = false;
@@ -137,7 +136,7 @@ namespace NEAT
                     bool loop = true;
                     do
                     {
-                        int randomIndex = random.Next(0, Nodes.Count);
+                        int randomIndex = randomGenerator.Next(0, Nodes.Count);
                         if (Nodes[randomIndex].Layer != 1) //if the chosen node is not an output node
                         {
                             loop = false;
@@ -147,13 +146,23 @@ namespace NEAT
                     loop = true;
                     do
                     {
-                        int randomIndex = random.Next(0, Nodes.Count);
+                        int randomIndex = randomGenerator.Next(0, Nodes.Count);
                         if (Nodes[randomIndex].Layer != 0 && Nodes[randomIndex].Number != inNode) //if the chosen node is not an output node
                         {
                             loop = false;
                             outNode = Nodes[randomIndex].Number;
                         }
                     } while (loop);
+
+                    //if the first node is after the second, reverse the connection (to have a forward-directed network)
+                    if (GetNode(inNode).Layer > GetNode(outNode).Layer)
+                    {
+                        //swap the values
+                        inNode += outNode;
+                        outNode = inNode - outNode;
+                        inNode = inNode - outNode;
+                    }
+
                     //Check if the connection already exists
                     foreach (ConnectionGene connection in Connections)
                         if (connection.FromNode.Number == inNode && connection.ToNode.Number == outNode) //the node already exists
@@ -163,7 +172,7 @@ namespace NEAT
                 //A random new valid generation has been generated.
                 //Add it
                 int innovation = GetInnovationNumber(history, ref nextInnovationNumber, GetNode(inNode), GetNode(outNode));
-                Connections.Add(new ConnectionGene(GetNode(inNode), GetNode(outNode), (float)random.NextDouble() * 4 - 2, innovation));
+                Connections.Add(new ConnectionGene(GetNode(inNode), GetNode(outNode), (float)randomGenerator.NextDouble() * 4 - 2, innovation));
                 ConnectNodes();
             }
             else
@@ -186,7 +195,7 @@ namespace NEAT
         {
             if (Connections.Count > 0)
             {
-                Connections[new Random().Next(Connections.Count)].Toggle();
+                Connections[randomGenerator.Next(Connections.Count)].Toggle();
             }
         }
 
@@ -198,19 +207,19 @@ namespace NEAT
         {
             if (Connections.Count == 0)
                 LinkMutate(history, ref nextInnovationNumber);
-            Random random = new Random();
             //Mutates weights
-            if (random.NextDouble() < 0.08)
+            if (randomGenerator.NextDouble() < 0.08)
                 foreach (ConnectionGene connection in Connections)
                     connection.MutateWeight();
             //Add a new connection
-            if (random.NextDouble() < 0.08)
+            double randomNumber = randomGenerator.NextDouble();
+            if ( randomNumber < 0.08)
                 LinkMutate(history, ref nextInnovationNumber);
             //Add a new node
-            if (random.NextDouble() < 0.02)
+            if (randomGenerator.NextDouble() < 0.02)
                 NodeMutate(history);
             //Toggle a connection
-            if (random.NextDouble() < 0.01)
+            if (randomGenerator.NextDouble() < 0.01)
                 EnableDisableMutate();
         }
 
@@ -229,16 +238,15 @@ namespace NEAT
             //CONNECTIONS
             foreach (ConnectionGene connection in Connections)
             {
-                Random random = new Random();
                 bool setEnabled = true;
                 int partnerConnection = GetMatchingGene(partner, connection.InnovationNumber);
                 if (partnerConnection != -1) //if the other parent has the same gene
                 {
                     //If one of the connections is disabled, there is 75% chance that the gene will be disabled
-                    if ((!connection.IsEnabled || !partner.Connections[partnerConnection].IsEnabled) && random.NextDouble() < 0.75)
+                    if ((!connection.IsEnabled || !partner.Connections[partnerConnection].IsEnabled) && randomGenerator.NextDouble() < 0.75)
                         setEnabled = false;
                     //The gene is transmitted by one of the parents
-                    if (random.NextDouble() < 0.5)
+                    if (randomGenerator.NextDouble() < 0.5)
                         childConnections.Add(connection);
                     else
                         childConnections.Add(partner.Connections[partnerConnection]);
@@ -335,10 +343,10 @@ namespace NEAT
         public int GetMaxConnections()
         {
             //the number of hidden nodes
-            int hiddens = Nodes.Count - Outputs - Inputs;
+            int hiddens = Nodes.Count - Outputs - (Inputs + 1);
 
-            //     /- connections from inputs -\    /-connections from hiddens nodes-\
-            return (Inputs * (hiddens + Outputs)) + (hiddens * (hiddens + Outputs - 1));
+            //     /-     connections from input    -\    /-connections from hiddens nodes-\
+            return ((Inputs + 1) * (hiddens + Outputs)) + (hiddens * (hiddens + Outputs - 1));
 
         }
 
