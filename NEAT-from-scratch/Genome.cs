@@ -121,12 +121,12 @@ namespace NEAT
         /// <summary>
         /// Randomly add a new connection between two nodes.
         /// </summary>
-        private void LinkMutate(List<ConnectionHistory> history)
+        private void LinkMutate(List<ConnectionHistory> history, ref int nextInnovationNumber)
         {
             if (Nodes.Count >= 2 && Connections.Count < GetMaxConnections())
             {
                 bool ConnectionAlreadyExists = false;
-                int innovation = 1;
+
                 int inNode = 0;
                 int outNode = 0;
                 Random random = new Random(); //random number generator
@@ -162,12 +162,14 @@ namespace NEAT
                 } while (ConnectionAlreadyExists);
                 //A random new valid generation has been generated.
                 //Add it
+                int innovation = GetInnovationNumber(history, ref nextInnovationNumber, GetNode(inNode), GetNode(outNode));
                 Connections.Add(new ConnectionGene(GetNode(inNode), GetNode(outNode), (float)random.NextDouble() * 4 - 2, innovation));
+                ConnectNodes();
             }
             else
             {
                 //can't add a new connection
-                Console.WriteLine("The genome has reached its max connection number. Cannot add a new one.")
+                Console.WriteLine("The genome has reached its max connection number. Cannot add a new one.");
             }
         }
         /// <summary>
@@ -192,10 +194,10 @@ namespace NEAT
         /// Randomly mutate this genome.
         /// </summary>
         /// <param name="history">The history of past connections</param>
-        public void Mutate(List<ConnectionHistory> history)
+        public void Mutate(List<ConnectionHistory> history, ref int nextInnovationNumber)
         {
             if (Connections.Count == 0)
-                LinkMutate(history);
+                LinkMutate(history, ref nextInnovationNumber);
             Random random = new Random();
             //Mutates weights
             if (random.NextDouble() < 0.08)
@@ -203,7 +205,7 @@ namespace NEAT
                     connection.MutateWeight();
             //Add a new connection
             if (random.NextDouble() < 0.08)
-                LinkMutate(history);
+                LinkMutate(history, ref nextInnovationNumber);
             //Add a new node
             if (random.NextDouble() < 0.02)
                 NodeMutate(history);
@@ -337,6 +339,27 @@ namespace NEAT
 
             //     /- connections from inputs -\    /-connections from hiddens nodes-\
             return (Inputs * (hiddens + Outputs)) + (hiddens * (hiddens + Outputs - 1));
+
+        }
+
+        public Genome Clone()
+        {
+            Genome clone = new Genome(Inputs, Outputs);
+
+            clone.Nodes.Clear();
+            clone.Connections.Clear();
+
+            foreach (Node n in Nodes)
+                clone.Nodes.Add(n.Clone());
+
+            foreach (ConnectionGene c in Connections)
+                clone.Connections.Add(c.Clone(clone.GetNode(c.FromNode.Number), clone.GetNode(c.ToNode.Number)));
+
+            clone.Layers = Layers;
+            clone.NextNode = NextNode;
+            clone.BiasNode = BiasNode;
+            clone.ConnectNodes();
+            return clone;
 
         }
     }
