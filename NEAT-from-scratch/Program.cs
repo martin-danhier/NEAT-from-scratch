@@ -8,15 +8,15 @@ namespace Program
 	{
 		public static void Main (string[] args)
 		{
-            List<ConnectionHistory> history = new List<ConnectionHistory>();
+            List<NeuralNetwork.ConnectionHistory> history = new List<NeuralNetwork.ConnectionHistory>();
             int nextInnovationNumber = 1000;
 
             //Create a genome
 			Genome genome = new Genome (3, 2);
             //Add connections between two nodes
-			genome.Connections.Add (new ConnectionGene (genome.Nodes [0], genome.Nodes [3], -0.6f, 1));
-            genome.Connections.Add(new ConnectionGene(genome.Nodes[1], genome.Nodes[4], 1f, 2));
-            genome.Connections.Add(new ConnectionGene(genome.Nodes[0], genome.Nodes[4], 0.5f, 3));
+			genome.Connections.Add (new NeuralNetwork.ConnectionGene (genome.Nodes [0], genome.Nodes [3], -0.6f, 1));
+            genome.Connections.Add(new NeuralNetwork.ConnectionGene(genome.Nodes[1], genome.Nodes[4], 1f, 2));
+            genome.Connections.Add(new NeuralNetwork.ConnectionGene(genome.Nodes[0], genome.Nodes[4], 0.5f, 3));
             //Process the neural network and compute the outputs
             Genome genome2 = genome.Clone();
             int iterations = 0;

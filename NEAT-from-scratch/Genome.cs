@@ -3,51 +3,50 @@ using System.Collections.Generic;
 
 namespace NEAT
 {
-	public class Genome
-	{
-		public List<ConnectionGene> Connections { get; private set; }
-		public List<Node> Nodes { get; private set; }
-		public int Inputs { get; private set; }
-		public int Outputs { get; private set; }
-		public int Layers { get; private set; }
-		public int NextNode { get; private set; }
-		public int BiasNode { get; private set; }
+    public partial class NeuralNetwork
+    {
+        public List<ConnectionGene> Connections { get; protected set; }
+        public List<Node> Nodes { get; protected set; }
+        public int Inputs { get; protected set; }
+        public int Outputs { get; protected set; }
+        public int Layers { get; protected set; }
+        public int NextNode { get; protected set; }
+        public int BiasNode { get; protected set; }
+        protected List<Node> network; //a list of the nodes in the order that they need to be considered by the neural network
+        protected static Random randomGenerator = new Random();
 
-		private List<Node> network; //a list of the nodes in the order that they need to be considered by the neural network
-        private static Random randomGenerator = new Random();
-		//============CONSTRUCTOR=============
-		/// <summary>
-		/// Initializes a new instance of the <see cref="NEAT.Genome"/> class. A genome countains a neural network topology.
-		/// </summary>
-		/// <param name="inputs">The number of inputs in the NN.</param>
-		/// <param name="outputs">The number of outputs in the NN.</param>
-		public Genome(int inputs, int outputs)
-		{
-			Layers = 2;
-			NextNode = 0;
-			Connections = new List<ConnectionGene> ();
-			Nodes = new List<Node> ();
+        //============CONSTRUCTOR=============
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NEAT.NeuralNetwork"/> class. A genome countains a neural network topology.
+        /// </summary>
+        /// <param name="inputs">The number of inputs in the NN.</param>
+        /// <param name="outputs">The number of outputs in the NN.</param>
+        public NeuralNetwork(int inputs, int outputs)
+        {
+            Layers = 2;
+            NextNode = 0;
+            Connections = new List<ConnectionGene>();
+            Nodes = new List<Node>();
 
-			//set input number and output number
-			Inputs = inputs;
-			Outputs = outputs;
+            //set input number and output number
+            Inputs = inputs;
+            Outputs = outputs;
 
-			//create input nodes
-			for (int i = 0; i<inputs;i++)
-				Nodes.Add (new Node (NextNode++, 0));
-			
-			//create output nodes
-			for (int i = 0; i < outputs; i++) 
-				Nodes.Add(new Node (NextNode++,1));
+            //create input nodes
+            for (int i = 0; i < inputs; i++)
+                Nodes.Add(new Node(NextNode++, 0));
 
-			//create bias node
-			Nodes.Add (new Node (NextNode, 0));
-			BiasNode = NextNode++;
+            //create output nodes
+            for (int i = 0; i < outputs; i++)
+                Nodes.Add(new Node(NextNode++, 1));
 
-		}
+            //create bias node
+            Nodes.Add(new Node(NextNode, 0));
+            BiasNode = NextNode++;
 
+        }
 
-        //==============MAIN METHODS==============
+        // ============ MAIN METHODS ===============
         /// <summary>
         /// Generate the output values of the NN.
         /// </summary>
@@ -55,7 +54,7 @@ namespace NEAT
         /// <param name="inputValues">Input values. Must be as long as the number of input nodes.</param>
         /// <exception cref="Exception">Throw when the input array isn't as long as the number of input nodes in the genome.</exception>
         public float[] FeedForward(float[] inputValues)
-		{
+        {
             if (inputValues.Length == Inputs)
             {
                 GenerateNetwork();
@@ -83,37 +82,99 @@ namespace NEAT
                 throw new Exception("The input array must be the same size than the number of input nodes.");
             }
 
-		}
+        }
+        /// <summary>
+        /// Adds the connections going out of a node to that node so that it can access the next node during feeding forward.
+        /// </summary>
+        protected void ConnectNodes()
+        {
+            // Reset connections
+            foreach (Node node in Nodes)
+                node.OutputConnections.Clear();
+            // Connect
+            foreach (ConnectionGene gene in Connections)
+                gene.FromNode.OutputConnections.Add(gene);
+        }
 
-		/// <summary>
-		/// Adds the connections going out of a node to that node so that it can access the next node during feeding forward.
-		/// </summary>
-		private void ConnectNodes()
-		{
-			// Reset connections
-			foreach (Node node in Nodes) 
-				node.OutputConnections.Clear ();
-			// Connect
-			foreach (ConnectionGene gene in Connections)
-				gene.FromNode.OutputConnections.Add (gene);
-		}
-
-		/// <summary>
+        /// <summary>
 		/// Sets up the NN as a list of nodes in order to be engaged.
 		/// </summary>
-		private void GenerateNetwork()
-		{
-			ConnectNodes ();
-			network = new List<Node> ();
+		protected void GenerateNetwork()
+        {
+            ConnectNodes();
+            network = new List<Node>();
 
-			//for each layer add the node in that layer, since layers cannot connect to themselves there is no need to order the nodes within a layer.
+            //for each layer add the node in that layer, since layers cannot connect to themselves there is no need to order the nodes within a layer.
 
-				for (int layer = 0; layer < Layers; layer++) //for each layer
-					foreach (Node node in Nodes) //for each node
-						if (node.Layer == layer) //if that node is in that layer
-							network.Add (node); // add it
+            for (int layer = 0; layer < Layers; layer++) //for each layer
+                foreach (Node node in Nodes) //for each node
+                    if (node.Layer == layer) //if that node is in that layer
+                        network.Add(node); // add it
 
-		}
+        }
+
+        // ============== USEFUL METHODS =================
+        public NeuralNetwork Clone()
+        {
+            NeuralNetwork clone = new NeuralNetwork(Inputs, Outputs);
+
+            clone.Nodes.Clear();
+            clone.Connections.Clear();
+
+            foreach (Node n in Nodes)
+                clone.Nodes.Add(n.Clone());
+
+            foreach (ConnectionGene c in Connections)
+                clone.Connections.Add(c.Clone(clone.GetNode(c.FromNode.Number), clone.GetNode(c.ToNode.Number)));
+
+            clone.Layers = Layers;
+            clone.NextNode = NextNode;
+            clone.BiasNode = BiasNode;
+            clone.ConnectNodes();
+            return clone;
+
+        }
+
+        protected Node GetNode(int nodeNumber)
+        {
+            foreach (Node n in Nodes)
+                if (n.Number == nodeNumber)
+                    return n;
+            return null; //if there isn't any node with that number
+        }
+
+        public override string ToString()
+        {
+            string str = "NODES:\n";
+            foreach (Node node in Nodes)
+                str += " - " + node + "\n";
+
+            str += "CONNECTIONS:\n";
+            foreach (ConnectionGene connection in Connections)
+                str += " - " + connection + "\n";
+
+            return str;
+
+        }
+    }
+
+
+
+
+
+	public class Genome : NeuralNetwork
+	{
+
+        //============CONSTRUCTOR=============
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NEAT.Genome"/> class. A genome countains a neural network topology.
+        /// </summary>
+        /// <param name="inputs">The number of inputs in the NN.</param>
+        /// <param name="outputs">The number of outputs in the NN.</param>
+        public Genome(int inputs, int outputs) : base(inputs, outputs)
+        {
+            //everything is done in the base constructor
+        }
 
         // ================ MUTATIONS ==================
         //already done, cf other repo
@@ -345,31 +406,6 @@ namespace NEAT
             return -1; //no matching gene found
         }
 
-
-
-
-		private Node GetNode(int nodeNumber)
-		{
-			foreach (Node n in Nodes)
-				if (n.Number == nodeNumber)
-					return n;
-			return null; //if there isn't any node with that number
-		}
-
-        public override string ToString()
-        {
-            string str = "NODES:\n";
-            foreach (Node node in Nodes)
-                str += " - " + node + "\n";
-            
-            str += "CONNECTIONS:\n";
-            foreach (ConnectionGene connection in Connections)
-                str += " - " + connection + "\n";
-            
-            return str;
-
-        }
-
         /// <summary>
         /// Computes the max number of connection that this genome may have with the current nodes.
         /// </summary>
@@ -383,7 +419,20 @@ namespace NEAT
 
         }
 
-        public Genome Clone()
+
+
+        private bool IsThereAnyEnabledConnection()
+        {
+            
+            //Check if there are enabled connections
+            foreach (ConnectionGene connection in Connections)
+                if (connection.IsEnabled && connection.FromNode.Number != BiasNode)
+                    return true;
+            //Can't find any enabled connection
+            return false;
+        }
+
+        public new Genome Clone()
         {
             Genome clone = new Genome(Inputs, Outputs);
 
@@ -402,16 +451,6 @@ namespace NEAT
             clone.ConnectNodes();
             return clone;
 
-        }
-
-        private bool IsThereAnyEnabledConnection()
-        {
-            //Check if there are enabled connections
-            foreach (ConnectionGene connection in Connections)
-                if (connection.IsEnabled && connection.FromNode.Number != BiasNode)
-                    return true;
-            //Can't find any enabled connection
-            return false;
         }
     }
 
