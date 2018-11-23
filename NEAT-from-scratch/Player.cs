@@ -2,9 +2,15 @@
 
 namespace NEAT
 {
-    public delegate float FitnessMethod();
+    /// <summary>
+    /// A method that computes the fitness (score) of the current player. The more the player is good, the higher the fitness.
+    /// </summary>
+    /// <param name="sender">The player that is calculating its fitness. </param>
+    /// <param name="args">The arg(s) passed to calculate the fitness.</param>
+    /// <returns></returns>
+    public delegate float FitnessMethod(Player sender, object args);
 
-    class Player
+    public class Player
     {
         public Genome Brain { get; private set; }
         public float Fitness { get; private set; }
@@ -20,17 +26,21 @@ namespace NEAT
             fitness = fitnessMethod;
         }
 
-        public void Kill()
+        public void Kill(object args)
         {
-            //kill it
-            IsAlive = false;
-            //calculate fitness
-            try
+            if (IsAlive)
             {
-                Fitness = fitness();
-            }
-            catch (Exception e) {
-                Console.WriteLine(e.Message);
+                //kill it
+                IsAlive = false;
+                //calculate fitness
+                try
+                {
+                    Fitness = fitness(this, args);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Fitness method invalid.", e);
+                }
             }
         }
 
