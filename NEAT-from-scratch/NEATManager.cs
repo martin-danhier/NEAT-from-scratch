@@ -38,12 +38,18 @@ namespace NEAT
     /// <summary>
     /// The global manager of the NEAT Algorithm. It allows you to interact with the NEAT process.
     /// </summary>
-    public class NEATManager
+    public partial class NEATManager
     {
         //======================================== PROPERTIES =================================================
         public List<Player> Players { get; private set; }
         public NEATMode Mode { get; private set; }
         public int PopulationSize { get; private set; }
+        public int Generation { get; private set; }
+
+        private List<Species> SpeciesList;
+        private Player bestPlayer;
+        private List<NeuralNetwork.ConnectionHistory> history;
+        private int nextInnovationNumber;
 
         //background of the property below
         private int _currentPlayerIndex;
@@ -76,15 +82,22 @@ namespace NEAT
         /// <param name="mode">The mode that will be used to run NEAT.</param>
         public NEATManager(int inputs, int outputs, FitnessMethod fitnessMethod, int size = 200 , NEATMode mode = NEATMode.Separately)
         {
-            Players = new List<Player>();
-            for (int i = 0; i < size; i++)
-            {
-                Players.Add(new Player(inputs, outputs, ref fitnessMethod));
-            }
             Mode = mode;
             PopulationSize = size;
             if (Mode == NEATMode.Separately)
                 CurrentPlayerIndex = 0;
+            history = new List<NeuralNetwork.ConnectionHistory>();
+            Players = new List<Player>();
+            SpeciesList = new List<Species>();
+            nextInnovationNumber = 0;
+            for (int i = 0; i < size; i++)
+            {
+                Players.Add(new Player(inputs, outputs, ref fitnessMethod));
+                Players[i].Brain.Mutate(history, ref nextInnovationNumber);
+            }
+            Generation = 1;
+
+
         }
 
         // ================================ SIMULTANEOUSLY MODE METHODS ======================================== 
@@ -117,7 +130,10 @@ namespace NEAT
         /// </summary>
         public void NextGeneration()
         {
-            throw new NotImplementedException();
+            if (Mode == NEATMode.Simultaneously) 
+               NaturalSelection();
+            else
+                throw new WrongNEATModeException("Expected NEATMode.Simultaneously, but found NEATMode.Separately. Try to change the mode, or you don't need to call this method.");
         }
 
         // ================================ SEPARATELY MODE METHODS ======================================== 
@@ -143,12 +159,147 @@ namespace NEAT
             {
                 Players[_currentPlayerIndex].Kill(args);
                 if (_currentPlayerIndex == PopulationSize - 1) //The current generation is complete
-                     ;//NextGeneration TO DO
+                { 
+                    NaturalSelection();
+                    _currentPlayerIndex = 0;
+                }
+
                 else
                     _currentPlayerIndex++;
             }
             else
                 throw new WrongNEATModeException("Expected NEATMode.Separately, but found NEATMode.Simultaneoulsy. Try to change the mode, or call NEATManager.Kill(playerIndex, args) instead.");
+        }
+
+        // ==================================== GLOBAL =========================================
+
+        /// <summary>
+        /// Get the best topology ever generated.
+        /// </summary>
+        /// <returns>The best topology.</returns>
+        public NeuralNetwork ExportBestTopology()
+        {
+            return bestPlayer.Brain.Clone();
+            
+        }
+
+        private void Speciate()
+        {
+            //Reset
+            foreach (Species s in SpeciesList)
+                s.Players.Clear();
+            for (int i = 0; i < PopulationSize; i++)
+            {
+                bool speciesFound = false;
+                foreach (Species s in SpeciesList)
+                    if (s.BelongsToTheSameSpecies(Players[i].Brain))
+                    {
+                        s.AddPlayer(Players[i]);
+                        speciesFound = true;
+                        break;
+                    }
+                if (!speciesFound)
+                    SpeciesList.Add(new Species(Players[i]));
+
+            }
+
+        }
+
+        private void SortSpecies()
+        {
+            //sort players
+            foreach (Species s in SpeciesList)
+                s.SortSpecies();
+            //sort species
+            SpeciesList.Sort((x, y) => ( x.BestFitness.CompareTo(y.BestFitness) ));
+        }
+
+        private void CullSpecies()
+        {
+            foreach (Species s in SpeciesList)
+            {
+                s.Cull();
+                s.FitnessSharing();
+            }
+        }
+
+        private void KillBadSpecies()
+        {
+            float averageSum = 0;
+            foreach (Species s in SpeciesList)
+                averageSum += s.AverageFitness;
+
+            for (int i = 1; i < SpeciesList.Count; i++)
+            {
+                if (SpeciesList[i].AverageFitness / averageSum * PopulationSize < 1) //no possible child
+                {
+                    SpeciesList.RemoveAt(i);
+                    i--;
+                }
+                else if (i > 1 && SpeciesList[i].Staleness >= 15) //no progress
+                {
+                    SpeciesList.RemoveAt(i);
+                    i--;
+                }
+            }
+
+                        
+            
+        }
+
+        private bool IsEveryoneDead()
+        {
+            foreach (Player p in Players)
+                if (p.IsAlive)
+                    return false;
+            return true;
+        }
+
+        private void NaturalSelection()
+        {
+            if (IsEveryoneDead())
+            {
+
+                // Speciate and keep the best species
+                Speciate(); //Separate the population into species
+                SortSpecies(); //sort the species according to fitness
+                CullSpecies(); //kill the bottom half of each species
+                //get the best player
+                Player genBest = SpeciesList[0].Players[0];
+                if (bestPlayer == null)
+                    bestPlayer = genBest.Clone();
+                else if (genBest.Fitness > bestPlayer.Fitness)
+                    bestPlayer = genBest.Clone();
+                
+                KillBadSpecies(); //kill the useless species
+
+                Console.WriteLine("Generation: {0}, Number of mutations: {1}, Species: {2}", Generation, history.Count, SpeciesList.Count);
+
+                //Get average fitness sum
+                float averageSum = 0;
+                foreach (Species s in SpeciesList)
+                    averageSum += s.AverageFitness;
+
+                List<Player> children = new List<Player>(); //Instanciates the next generation
+                foreach (Species s in SpeciesList)
+                {
+                    children.Add(s.Champion);
+                    for (int i = 0; i < Math.Floor((s.AverageFitness / averageSum) * PopulationSize - 1); i++) //add more or less babies according to the species
+                    {
+                        children.Add(s.GetBaby(history, ref nextInnovationNumber));
+                    }
+
+                }
+
+                while (children.Count < PopulationSize)
+                    children.Add(SpeciesList[0].GetBaby(history, ref nextInnovationNumber));
+                Players = new List<Player>(children);
+                Generation++;
+
+
+
+
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ namespace NEAT
         public int BiasNode { get; protected set; }
         protected List<Node> network; //a list of the nodes in the order that they need to be considered by the neural network
         protected static Random randomGenerator = new Random();
+        protected bool networkChanged;
 
         //============CONSTRUCTOR=============
         /// <summary>
@@ -44,6 +45,7 @@ namespace NEAT
             Nodes.Add(new Node(NextNode, 0));
             BiasNode = NextNode++;
 
+            networkChanged = true;
         }
 
         // ============ MAIN METHODS ===============
@@ -57,7 +59,11 @@ namespace NEAT
         {
             if (inputValues.Length == Inputs)
             {
-                GenerateNetwork();
+                if (networkChanged)
+                {
+                    GenerateNetwork();
+                    networkChanged = false;
+                }
                 // set the inputs
                 for (int i = 0; i < Inputs; i++)
                     Nodes[i].OutputValue = inputValues[i];
@@ -94,6 +100,7 @@ namespace NEAT
             // Connect
             foreach (ConnectionGene gene in Connections)
                 gene.FromNode.OutputConnections.Add(gene);
+            networkChanged = true;
         }
 
         /// <summary>
@@ -114,6 +121,27 @@ namespace NEAT
         }
 
         // ============== USEFUL METHODS =================
+        public Genome ToGenome()
+        {
+            Genome clone = new Genome(Inputs, Outputs);
+
+            clone.Nodes.Clear();
+            clone.Connections.Clear();
+
+            foreach (Node n in Nodes)
+                clone.Nodes.Add(n.Clone());
+
+            foreach (ConnectionGene c in Connections)
+                clone.Connections.Add(c.Clone(clone.GetNode(c.FromNode.Number), clone.GetNode(c.ToNode.Number)));
+
+            clone.Layers = Layers;
+            clone.NextNode = NextNode;
+            clone.BiasNode = BiasNode;
+            clone.ConnectNodes();
+            clone.networkChanged = true;
+            return clone;
+        }
+
         public NeuralNetwork Clone()
         {
             NeuralNetwork clone = new NeuralNetwork(Inputs, Outputs);
@@ -131,6 +159,7 @@ namespace NEAT
             clone.NextNode = NextNode;
             clone.BiasNode = BiasNode;
             clone.ConnectNodes();
+            clone.networkChanged = true;
             return clone;
 
         }
@@ -239,7 +268,7 @@ namespace NEAT
             else
             {
                 //can't add a new connection
-                Console.WriteLine("The genome has reached its max connection number. Cannot add a new one.");
+                //Console.WriteLine("The genome has reached its max connection number. Cannot add a new one.");
             }
         }
         /// <summary>
@@ -279,7 +308,7 @@ namespace NEAT
             }
             else
             {
-                Console.WriteLine("There are no enabled connection to split.");
+                //Console.WriteLine("There are no enabled connection to split.");
             }
         }
         /// <summary>
@@ -299,6 +328,7 @@ namespace NEAT
         /// <param name="history">The history of past connections</param>
         public void Mutate(List<ConnectionHistory> history, ref int nextInnovationNumber)
         {
+            
             if (Connections.Count == 0)
                 LinkMutate(history, ref nextInnovationNumber);
             //Mutates weights
@@ -315,6 +345,7 @@ namespace NEAT
             //Toggle a connection
             if (randomGenerator.NextDouble() < 0.02)
                 EnableDisableMutate();
+            networkChanged = true;
         }
 
 
@@ -432,26 +463,7 @@ namespace NEAT
             return false;
         }
 
-        public new Genome Clone()
-        {
-            Genome clone = new Genome(Inputs, Outputs);
 
-            clone.Nodes.Clear();
-            clone.Connections.Clear();
-
-            foreach (Node n in Nodes)
-                clone.Nodes.Add(n.Clone());
-
-            foreach (ConnectionGene c in Connections)
-                clone.Connections.Add(c.Clone(clone.GetNode(c.FromNode.Number), clone.GetNode(c.ToNode.Number)));
-
-            clone.Layers = Layers;
-            clone.NextNode = NextNode;
-            clone.BiasNode = BiasNode;
-            clone.ConnectNodes();
-            return clone;
-
-        }
     }
 
 

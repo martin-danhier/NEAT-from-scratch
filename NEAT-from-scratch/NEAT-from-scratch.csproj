@@ -40,6 +40,7 @@
     <Compile Include="Genome.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="ConnectionHistory.cs" />
+    <Compile Include="Species.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

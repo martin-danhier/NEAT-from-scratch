@@ -12,15 +12,16 @@ namespace Program
 		{
 
             NEATManager manager = new NEATManager(3, 2, CalculateFitness, 200, NEATMode.Separately) ;
-            for (int i = 0; i < manager.PopulationSize +100; i++)
+            for (int i = 0; i < manager.PopulationSize * 10; i++)
             {
-                Console.WriteLine(manager.CurrentPlayerIndex);
+                //Console.WriteLine("Player " + manager.CurrentPlayerIndex);
+                //Console.WriteLine("Decision : " + manager.ThinkCurrent(new float[] { 1.5f, 0.72f, -1.618f }));
                 manager.KillCurrent(new int[] { i, 2 });
-                Console.WriteLine(manager.Players[manager.CurrentPlayerIndex - 1].Fitness);
+                //Console.WriteLine("Fitness : " + manager.Players[manager.CurrentPlayerIndex - 1].Fitness+"\n");
             }
 
 
-            //Uncomment this if you are using Visual Studio Community instead of MonoDevelop
+            //Uncomment this if you are using Visual Studio instead of MonoDevelop
             Console.WriteLine("\nPress any key to close the program.");
             Console.ReadKey();
 		}
